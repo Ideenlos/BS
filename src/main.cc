@@ -50,12 +50,6 @@ extern "C" void kernel(uint32_t magic, const Multiboot_Info* info);
  **/
 void kernel(uint32_t magic, const Multiboot_Info* info) {
 
-	kout.print("test", 4);
-	kout.setAttributes(3, 2, 0);
-	kout.setpos(14, 20);
-	kout.print("adada", 5);
-	kout.setpos(16, 20);
-	kout.setAttributes(2, 2, 0);
 
 
 	TaskClass task(magic, info);

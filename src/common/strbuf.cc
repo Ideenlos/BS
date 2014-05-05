@@ -8,16 +8,12 @@
 
 #include "common/strbuf.h"
 
-/** \todo implement **/
 Stringbuffer::Stringbuffer(){
-  /* ToDo: Insert Your Code Here */
 	pos_ = 0;
 }
-/** \todo implement **/
-Stringbuffer::~Stringbuffer(){
-  /* ToDo: Insert Your Code Here */
-}
-/** \todo implement **/
+
+Stringbuffer::~Stringbuffer(){}
+
 void Stringbuffer::put(char c) {
    if (pos_ >= BUFFERSIZE) {
       	flush();

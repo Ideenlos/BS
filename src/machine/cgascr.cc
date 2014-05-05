@@ -15,16 +15,29 @@ IO_Port Indexregister = IO_Port(0x3d4);
 IO_Port Dataregister = IO_Port(0x3d5);
 
 CGA_Screen::CGA_Screen() {
+	/* Speicherbereich setzen */
 	CGAstart = (char *) 0xb8000;
+	clear();
+	setpos(0, 0);
 
+	/* siehe include/config.h */
 	attribute = DEFAULT_SCREEN_ATTRIB;
 }
 
-CGA_Screen::~CGA_Screen() {
-
-}
+CGA_Screen::~CGA_Screen() {}
 
 void CGA_Screen::setpos(unsigned short x, unsigned short y) {
+	/* macht zeilenumbrüche und scrollt automatisch weiter */
+	if (y > 24 || (x >= 80 && y == 24)) {
+		scrollup();
+		x = 0;
+		y = 24;
+	}
+	if (x >= 80 && y < 24) {
+		x = 0;
+		++y;
+	}
+
 	/************************************************
 	 * Der Displaykontroller verlangt die Position
 	 * des Cursors nach dem Schema y * 80 + x.
@@ -39,9 +52,8 @@ void CGA_Screen::setpos(unsigned short x, unsigned short y) {
 	 * Wert HIGH ist: [000111]
 	 *
 	 * Info: http://www.reenigne.org/crtc/mc6845.pdf
-	*/
+	 */
 	unsigned short pos;
-
 	pos = (y * 80) + x;
 
 	/* Cursor LOW port */
@@ -50,7 +62,7 @@ void CGA_Screen::setpos(unsigned short x, unsigned short y) {
 
 	/* Cursor HIGH port */
 	Indexregister.outb(14);
-	Dataregister.outb((unsigned char)(pos >> 8)); //write new y coordinate
+	Dataregister.outb((unsigned char) (pos >> 8)); //write new y coordinate
 }
 
 void CGA_Screen::getpos(unsigned short& x, unsigned short& y) const {
@@ -64,48 +76,50 @@ void CGA_Screen::getpos(unsigned short& x, unsigned short& y) const {
 	/* Cursor HIGH port */
 	Indexregister.outb(14); //get y coordinate
 	y_ = Dataregister.inb();
+	y_ = (y_ << 8);
 
-	pos = x_ | (y_ << 8); //get the position out of the x_(high byte) and y_(low byte)
+	pos = x_ | y_; //get the position out of the x_(high byte) and y_(low byte)
+
 	x = pos % 80; //get the x back from position
 	y = pos / 80; //get the y back from position
 }
 
-void CGA_Screen::show(unsigned short x, unsigned short y, char character,
-		unsigned char attribute) {
+void CGA_Screen::show(unsigned short x, unsigned short y, char character, unsigned char attribute) {
 
-	if (x <= 79 && x >= 0 && y <= 24 && y >= 0) { //bounds of vram
-		pos = CGAstart + 2 * (x + y * 80);
-		*pos = character;
-		*(pos + 1) = attribute;
-	}
+	unsigned short pos = y * 80 + x;
+	CGAstart[pos * 2] = character;
+	CGAstart[pos * 2 + 1] = attribute;
 }
 
 void CGA_Screen::print(const char* string, unsigned int n) { // n is length
 
 	unsigned short x, y;
-	getpos(x, y);
 
 	for (unsigned int i = 0; i < n; i++) {
-		if (string[i] != '\n') { //normal text
-			show(x, y, string[i], ' ');
-			x = x + 1;
-		} else {
-			y = y + 1;
-			x = 0; //line break if \n
-		}
+		getpos(x, y);
 
-		if (x > 79) { //end of line
-			y = y + 1;
-			x = 0; //line break
-		}
+		if (string[i] == '\n') { //new line
+			setpos(0, y + 1);
 
-		if (y > 24) { //end of column
-			y = y - 1;
-			scrollup();
+		} else if (string[i] == '\b') {	//backspace
+
+			if (x == 0 && y != 0) { //backspace at the beginning of line
+				show(79, y - 1, 0, attribute);
+				setpos(79, y - 1);
+
+			} else if (x != 0) { //backspace in normal cases
+				show(x - 1, y, 0, attribute);
+				setpos(x - 1, y);
+			}
+
+		} else { //print out char
+			show(x, y, string[i], attribute);
+
+			if (x > 79) setpos(0, y + 1); //next line
+			else setpos(x + 1, y);
+
 		}
 	}
-
-	setpos(x, y); //set cursor
 }
 
 void CGA_Screen::scrollup() {
@@ -138,10 +152,16 @@ void CGA_Screen::clear() {
 }
 
 void CGA_Screen::setAttributes(int fgColor, int bgColor, bool blink) {
-	fgColor = fgColor%16;
+	if (fgColor > 15 || fgColor < 0)
+	        setAttributes(0xF, bgColor, blink);
 
-	bgColor = bgColor%8;
+	    else {
+			unsigned char fgC = (unsigned char) fgColor;
+			unsigned char bgC = (unsigned char) bgColor;
+			unsigned char bnk = (blink ? 0x80 : 0x00);
 
-	if(blink){ blink = 1; }
-	attribute = (char)(fgColor | (bgColor<<4) | (blink<<7));
+			bgC = bgC << 4;
+
+			attribute = bnk | bgC | fgC;
+		}
 }

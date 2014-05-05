@@ -8,16 +8,9 @@
 
 #include "common/o_stream.h"
 
-/** \brief \todo implement **/
-O_Stream::O_Stream() :
-		Stringbuffer(), fgColor(WHITE), bgColor(BLACK), blink(false), base(dec) {
-	/* ToDo: Insert Your Code Here */
-}
+O_Stream::O_Stream() : Stringbuffer(), fgColor(WHITE), bgColor(BLACK), blink(false), base(dec) {}
 
-/** \brief \todo implement **/
-O_Stream::~O_Stream() {
-	/* ToDo: Insert Your Code Here */
-}
+O_Stream::~O_Stream() {}
 
 char* revStr(char* s) {
 	char c;
@@ -42,23 +35,24 @@ char* toString(char* s, unsigned long value, int base) {
 		s[0] = '0';
 		++i;
 	}
+
 	while (value) {
-		s[i] = (value % base);
-		s[i] = s[i] + ((s[i] > 9) ? 87 : 48);
+		s[i] = value % base;
+		s[i] = s[i] + ((s[i] > 9) ? 87 : 48); //normal numbers: 48-57; lowercase letters from: 97-122
 		i++;
 		value = value / base;
 	}
 
-	switch (base) { // prefixe zum string
+	switch (base) { // prefix of string
 	case 2:
 		s[i++] = 'b';
 		s[i++] = '0';
 		break;
 	case 8:
-		s[i++] = '0';
+		s[i++] = '0'; //oktal starts with 0
 		break;
 	case 16:
-		s[i++] = 'x';
+		s[i++] = 'x'; //hexadezimal starts with 0x
 		s[i++] = '0';
 		break;
 	default:
@@ -67,7 +61,8 @@ char* toString(char* s, unsigned long value, int base) {
 	return revStr(s);
 }
 
-/** \brief \todo implement **/
+// Operationen auf Text:
+
 O_Stream& O_Stream::operator <<(char value) {
 	put(value);
 	flush();
@@ -75,36 +70,40 @@ O_Stream& O_Stream::operator <<(char value) {
 }
 
 O_Stream& O_Stream::operator <<(unsigned char value) {
-	return *this << (char) value;
+	put((char) value);
+	flush();
+	return *this;
 }
 
 O_Stream& O_Stream::operator <<(char* value) {
-	return *this << (const char*) value;
+	int i = 0;
+	while (value[i] != 0) {
+		put(value[i]);
+		i++;
+	}
+	return *this;
 }
 
-/** \brief \todo implement **/
 O_Stream& O_Stream::operator <<(const char* value) {
 	return *this << (char*) (value);
 }
 
 O_Stream& O_Stream::operator <<(short value) {
-	return *this << (long) value;
+	return *this << (int) (value);
 }
 
 O_Stream& O_Stream::operator <<(unsigned short value) {
-	return *this << (unsigned long) value;
+	return *this << (unsigned int) (value);
 }
 
 O_Stream& O_Stream::operator <<(int value) {
-	return *this << (long) value;
+	return *this << (long) (value);
 }
 
 O_Stream& O_Stream::operator <<(unsigned int value) {
-	return *this << (unsigned long) value;
-
+	return *this << (unsigned long) (value);
 }
 
-/** \brief \todo implement **/
 O_Stream& O_Stream::operator <<(long value) {
 	char text[TEXT_SIZE] = { 0 };
 	if (value < 0) {
@@ -114,13 +113,11 @@ O_Stream& O_Stream::operator <<(long value) {
 	return *this << toString(text, (unsigned long) value, base);
 }
 
-/** \brief \todo implement **/
 O_Stream& O_Stream::operator <<(unsigned long value) {
 	char text[TEXT_SIZE] = { 0 };
 	return *this << toString(text, value, base) << '\0';
 }
 
-/** \brief \todo implement **/
 O_Stream& O_Stream::operator <<(void* value) {
 	char text[POINTER_SIZE] = { 0 };
 	return *this << toString(text, (unsigned long) (value), hex);
@@ -147,7 +144,7 @@ O_Stream& O_Stream::operator <<(Blink blink) {
 	return *this;
 }
 
-/** \brief \todo implement **/
+
 O_Stream& endl(O_Stream& os) {
 	os.flush();
 	return os << '\n';
